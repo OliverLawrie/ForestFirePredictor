@@ -1,15 +1,50 @@
+
+#import libraries
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+#import dataset
+df_fires = pd.read_csv("/content/drive/MyDrive/Colab Notebooks/WaldbrändeDE.csv")
+
+# Initial exploration
+print("Shape of the dataset:", df_fires.shape)
+print("\nColumn names:")
+print(df_fires.columns)
+print("\nData types of each column:")
+print(df_fires.dtypes)
+print("\nFirst few rows of the dataset:")
+print(df_fires.head())
+print("\nSummary statistics:")
+print(df_fires.describe())
+
+# Check for missing values
+print("\nMissing values in each column:")
+print(df_fires.isnull().sum())
+
+# Visualise summary of each region to see point of interest for analysis
+region_summary = df_fires.groupby('admlvl1').agg(
+    number_of_fires=('id', 'count'),
+    total_area_burnt=('area_ha', 'sum'),
+    average_area_burnt=('area_ha', 'mean')
+).reset_index()
+
+# Display the summary
+print(region_summary)
+
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score # Import necessary metrics
 import seaborn as sns
 
-#IMPORT TEXT FILE
+#Import text file
 file_path = '/content/drive/MyDrive/regional_averages_tm_year.txt'
 df = pd.read_csv(file_path, delimiter=';')  # Use the appropriate delimiter
 
-# Define your features and target variable
+# Define feature 'year' and target variable 'temperature in Niedersachsen'
 X = df[['Jahr']]
-y = df['Niedersachsen']  # Column that shows temperature
+y = df['Niedersachsen']  # Select column that shows temperature in Niedersachsen
 
 # Split the data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
