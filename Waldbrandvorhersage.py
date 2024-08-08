@@ -4,8 +4,13 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score # Import necessary metrics
 
-#import dataset
+#Assess forest fire dataset to find possible useful insights 
+
+#import forest fire dataset from EFFI
 df_fires = pd.read_csv("/content/drive/MyDrive/Colab Notebooks/WaldbrändeDE.csv")
 
 # Initial exploration
@@ -33,14 +38,11 @@ region_summary = df_fires.groupby('admlvl1').agg(
 # Display the summary
 print(region_summary)
 
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score # Import necessary metrics
-import seaborn as sns
+#Given Niedersachsen has highest frequency of forest fires, decide to calculate future damage caused by forest fires in niedersachsen given rising temperatures.
 
-#Import text file
+#Import text file containing regional average temperatures in Germany
 file_path = '/content/drive/MyDrive/regional_averages_tm_year.txt'
-df = pd.read_csv(file_path, delimiter=';')  # Use the appropriate delimiter
+df = pd.read_csv(file_path, delimiter=';')  # Use ; as delimiter to separate data
 
 # Define feature 'year' and target variable 'temperature in Niedersachsen'
 X = df[['Jahr']]
@@ -56,7 +58,7 @@ print(X_test.shape)
 print(y_train.shape)
 print(y_test.shape)
 
-#Fit and Train Model
+#Fit and rrain Model to predict avg. yearly temperatures in Niedersachsen
 regressor = LinearRegression() #Create Linear Regression model
 regressor.fit(X_train, y_train) # fit the model with training data
 
@@ -68,18 +70,18 @@ print('Predictions:', y_predictions)
 print("Coefficients:\n", regressor.coef_)
 print('Intercept:\n', regressor.intercept_)
 
-# COMPARING TEST DATA AND PREDICTED DATA
+# Compare test and predicted data
 comparison_df = pd.DataFrame({"Actual":y_test,"Predicted":y_predictions})
 print('Actual test data vs predicted: \n', comparison_df)
 
-# EVALUATING MODEL METRICS
+# Evaluate model metrics
 print('MAE:', mean_absolute_error(y_test,y_predictions))
 print("MSE",mean_squared_error(y_test,y_predictions))
 print("RMSE",np.sqrt(mean_squared_error(y_test,y_predictions)))
 r2 = r2_score(y_test,y_predictions)
 print('Model Score: ', r2)
 
-# Plot LINEAR REGRESSION LINE
+# Plot linear regression line
 sns.regplot(x='Jahr', y='Niedersachsen', data=df, ci=None,
             scatter_kws={'s':100, 'facecolor':'red'})
 
@@ -90,7 +92,7 @@ future_years['Temperaturvorhersage'] = future_temperatures
 
 print(future_years)
 
-# Plot historical data and predictions
+# Plot historical data compared to predictions
 plt.figure(figsize=(10, 6))
 plt.scatter(X, y, color='blue', label='Historical Data')
 plt.plot(future_years['Jahr'], future_years['Temperaturvorhersage'], color='red', linestyle='--', label='Predictions')
@@ -100,12 +102,12 @@ plt.legend()
 plt.title('Temperaturvorhersage in Niedersachsen bis 2050')
 plt.show()
 
+#Now, create a model that finds the relation between temperature and total area burnt in forest fires.
+
 #Create df with years and total area burned in niedersachsen
 df_niedersachsen = df_fires[df_fires['admlvl1'] == 'Niedersachsen']
-# type(df.iloc[0].initialdate)
 df_niedersachsen['Fire_Year'] = df_niedersachsen['initialdate'].str[:4]
 df_niedersachsen=df_niedersachsen[['Fire_Year', 'area_ha', 'id']]
-df_niedersachsen
 
 #Plot for easier visualisations
 df_niedersachsen[['Fire_Year', 'area_ha']].plot(x='Fire_Year', y='area_ha', kind='scatter')
@@ -113,17 +115,13 @@ df_niedersachsen[['Fire_Year', 'area_ha']].plot(x='Fire_Year', y='area_ha', kind
 #Calculate total area burned per year for use in model
 df_total_area_burned = df_niedersachsen.groupby('Fire_Year')['area_ha'].sum().reset_index()
 
-# Rename the columns for clarity
-
 # Display the aggregated dataframe and visualise in barchart
 print(df_total_area_burned)
 df_total_area_burned.columns = ['Fire_Year', 'Total_Area_Burned'] #rename columns for clarity
 df_total_area_burned[['Fire_Year', 'Total_Area_Burned']].plot(x='Fire_Year', y='Total_Area_Burned', kind='bar')
 
-
 #Add the years between that had 0 hectares burnt
 
-# Create a DataFrame with all years from 2013 to 2023
 years = pd.DataFrame({'Fire_Year': [str(year) for year in range(2013, 2024)]})
 
 # Merge with the aggregated data
