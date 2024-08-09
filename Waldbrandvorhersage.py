@@ -145,7 +145,7 @@ plt.title('Total Area Burned per Year in Niedersachsen')
 plt.show()
 
 #Create df to find temperatures between 2013-2023 in Niedersachsen
-results_df = df[(df['Jahr'] >= 2013) & (df['Jahr'] <= 2023)][['Jahr', 'Niedersachsen']]
+result_df = df[(df['Jahr'] >= 2013) & (df['Jahr'] <= 2023)][['Jahr', 'Niedersachsen']]
 
 # Convert 'Jahr' in result_df to string if it's an integer
 result_df['Jahr'] = result_df['Jahr'].astype(str)
