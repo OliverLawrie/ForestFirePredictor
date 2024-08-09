@@ -1,17 +1,16 @@
-
 #import libraries
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import sklearn
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score # Import necessary metrics
+import seaborn as sns
 
-#Assess forest fire dataset to find possible useful insights 
-
-#import forest fire dataset from EFFI
-df_fires = pd.read_csv("/content/drive/MyDrive/Colab Notebooks/WaldbrändeDE.csv")
+#import dataset
+df_fires = pd.read_csv("/Users/oliverlawrie/Desktop/ForestFirePredictor/WaldbrändeDE.csv")
 
 # Initial exploration
 print("Shape of the dataset:", df_fires.shape)
@@ -38,15 +37,14 @@ region_summary = df_fires.groupby('admlvl1').agg(
 # Display the summary
 print(region_summary)
 
-#Given Niedersachsen has highest frequency of forest fires, decide to calculate future damage caused by forest fires in niedersachsen given rising temperatures.
+#Linear Reg Model to Predict Temp
+#IMPORT TEXT FILE
+file_path = '/Users/oliverlawrie/Desktop/ForestFirePredictor/regional_averages_tm_year.txt'
+df = pd.read_csv(file_path, delimiter=';')  # Use the appropriate delimiter
 
-#Import text file containing regional average temperatures in Germany
-file_path = '/content/drive/MyDrive/regional_averages_tm_year.txt'
-df = pd.read_csv(file_path, delimiter=';')  # Use ; as delimiter to separate data
-
-# Define feature 'year' and target variable 'temperature in Niedersachsen'
+# Define your features and target variable
 X = df[['Jahr']]
-y = df['Niedersachsen']  # Select column that shows temperature in Niedersachsen
+y = df['Niedersachsen']  # Column that shows temperature
 
 # Split the data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -58,7 +56,7 @@ print(X_test.shape)
 print(y_train.shape)
 print(y_test.shape)
 
-#Fit and rrain Model to predict avg. yearly temperatures in Niedersachsen
+#Fit and Train Model
 regressor = LinearRegression() #Create Linear Regression model
 regressor.fit(X_train, y_train) # fit the model with training data
 
@@ -70,20 +68,21 @@ print('Predictions:', y_predictions)
 print("Coefficients:\n", regressor.coef_)
 print('Intercept:\n', regressor.intercept_)
 
-# Compare test and predicted data
+# COMPARING TEST DATA AND PREDICTED DATA
 comparison_df = pd.DataFrame({"Actual":y_test,"Predicted":y_predictions})
 print('Actual test data vs predicted: \n', comparison_df)
 
-# Evaluate model metrics
+# EVALUATING MODEL METRICS
 print('MAE:', mean_absolute_error(y_test,y_predictions))
 print("MSE",mean_squared_error(y_test,y_predictions))
 print("RMSE",np.sqrt(mean_squared_error(y_test,y_predictions)))
 r2 = r2_score(y_test,y_predictions)
 print('Model Score: ', r2)
 
-# Plot linear regression line
+# Plot LINEAR REGRESSION LINE
 sns.regplot(x='Jahr', y='Niedersachsen', data=df, ci=None,
             scatter_kws={'s':100, 'facecolor':'red'})
+
 
 # Predict future temperatures
 future_years = pd.DataFrame({'Jahr': np.arange(2024, 2050)})
@@ -92,7 +91,7 @@ future_years['Temperaturvorhersage'] = future_temperatures
 
 print(future_years)
 
-# Plot historical data compared to predictions
+# Plot historical data and predictions
 plt.figure(figsize=(10, 6))
 plt.scatter(X, y, color='blue', label='Historical Data')
 plt.plot(future_years['Jahr'], future_years['Temperaturvorhersage'], color='red', linestyle='--', label='Predictions')
@@ -102,134 +101,119 @@ plt.legend()
 plt.title('Temperaturvorhersage in Niedersachsen bis 2050')
 plt.show()
 
-#Now, create a model that finds the relation between temperature and total area burnt in forest fires.
+#With average future temperatures, create model to predict average area burnt in niedersachsen per year given the temperature.
+
+# Evaluate future risk of Niedersachsen in coming years with forest fire data and predicted average temperatures
+
+### Create model that uses temp and damage to see relationship between two, and then feed in pred temps from above to this model.
+
+#Create df_total_damage with temperatures and total area burnt in Niedersachsen
 
 #Create df with years and total area burned in niedersachsen
-df_niedersachsen = df_fires[df_fires['admlvl1'] == 'Niedersachsen']
-df_niedersachsen['Fire_Year'] = df_niedersachsen['initialdate'].str[:4]
-df_niedersachsen=df_niedersachsen[['Fire_Year', 'area_ha', 'id']]
-
-#Plot for easier visualisations
-df_niedersachsen[['Fire_Year', 'area_ha']].plot(x='Fire_Year', y='area_ha', kind='scatter')
+df_total_damage = df_fires[df_fires['admlvl1'] == 'Niedersachsen']
+df_total_damage['Fire_Year'] = df_total_damage['initialdate'].str[:4]
+df_total_damage=df_total_damage[['Fire_Year', 'area_ha']]
+df_total_damage
 
 #Calculate total area burned per year for use in model
-df_total_area_burned = df_niedersachsen.groupby('Fire_Year')['area_ha'].sum().reset_index()
+df_total_damage = df_total_damage.groupby('Fire_Year')['area_ha'].sum().reset_index()
 
 # Display the aggregated dataframe and visualise in barchart
-print(df_total_area_burned)
-df_total_area_burned.columns = ['Fire_Year', 'Total_Area_Burned'] #rename columns for clarity
-df_total_area_burned[['Fire_Year', 'Total_Area_Burned']].plot(x='Fire_Year', y='Total_Area_Burned', kind='bar')
+print(df_total_damage)
+df_total_damage.columns = ['Fire_Year', 'Total_Area_Burned'] #rename columns for clarity
+df_total_damage[['Fire_Year', 'Total_Area_Burned']].plot(x='Fire_Year', y='Total_Area_Burned', kind='bar')
 
 #Add the years between that had 0 hectares burnt
 
+# Create a DataFrame with all years from 2013 to 2023
 years = pd.DataFrame({'Fire_Year': [str(year) for year in range(2013, 2024)]})
 
 # Merge with the aggregated data
-df_total_area_burned = years.merge(df_total_area_burned, on='Fire_Year', how='left')
+df_total_damage = years.merge(df_total_damage, on='Fire_Year', how='left')
 
 # Fill NaN values with 0
-df_total_area_burned['Total_Area_Burned'] = df_total_area_burned['Total_Area_Burned'].fillna(0)
+df_total_damage['Total_Area_Burned'] = df_total_damage['Total_Area_Burned'].fillna(0)
 
 # Display the updated dataframe
-print(df_total_area_burned)
+print(df_total_damage)
 
 # Plot the total area burned per year
-df_total_area_burned.plot(x='Fire_Year', y='Total_Area_Burned', kind='bar')
+df_total_damage.plot(x='Fire_Year', y='Total_Area_Burned', kind='bar')
 plt.xlabel('Year')
 plt.ylabel('Total Area Burned (ha)')
 plt.title('Total Area Burned per Year in Niedersachsen')
 plt.show()
 
-#Filter temperature dataset to show temps between 2013-2023 to train model
-# Filtering the DataFrame for the years between 2013 and 2023 inclusive
-filtered_df = df[(df['Jahr'] >= 2013) & (df['Jahr'] <= 2023)]
+#Create df to find temperatures between 2013-2023 in Niedersachsen
+results_df = df[(df['Jahr'] >= 2013) & (df['Jahr'] <= 2023)][['Jahr', 'Niedersachsen']]
 
-# Selecting only the 'Niedersachsen' and 'Jahr' columns
-result_df = filtered_df[['Jahr', 'Niedersachsen']]
+# Convert 'Jahr' in result_df to string if it's an integer
+result_df['Jahr'] = result_df['Jahr'].astype(str)
 
-# Display the result
-print(result_df)
+# Merge the DataFrames on the 'Jahr' (Year) column
+df_merged = pd.merge(result_df, df_total_damage, left_on='Jahr', right_on='Fire_Year')
 
-print(df_total_area_burned)
+# Select relevant columns for the model
+df_model = df_merged[['Niedersachsen', 'Total_Area_Burned']]
 
-# Convert 'Fire_Year' in df_total_area_burned to numeric
-df_total_area_burned['Fire_Year'] = pd.to_numeric(df_total_area_burned['Fire_Year'])
+# Display the final DataFrame
+print(df_model)
 
-# Merge DataFrames on year
-merged_df = pd.merge(df_total_area_burned, result_df, left_on='Fire_Year', right_on='Jahr')
+# Define features (X) and target variable (y)
+X = df_model[['Niedersachsen']]  # Feature: Temperature in Niedersachsen
+y = df_model['Total_Area_Burned']  # Target: Total Area Burned
 
-# Prepare features and target variable with unique names
-feature_data = merged_df[['Niedersachsen']]  # Unique feature variable
-target_data = merged_df['Total_Area_Burned']  # Unique target variable
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Split data into training and testing sets with unique names
-feature_train, feature_test, target_train, target_test = train_test_split(
-    feature_data, target_data, test_size=0.2, random_state=42
-)
+# Initialize and train the linear regression model
+model = LinearRegression()
+model.fit(X_train, y_train)
 
-# Initialize and train the new regression model with unique variable names
-new_model = LinearRegression()
-new_model.fit(feature_train, target_train)
+# Make predictions on the test set
+y_pred = model.predict(X_test)
 
-# Make predictions with unique variable names
-target_pred = new_model.predict(feature_test)
+# Evaluate the model
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
 
-# Evaluate the new model
-mse_new = mean_squared_error(target_test, target_pred)
-r2_new = r2_score(target_test, target_pred)
+print(f"Mean Squared Error: {mse}")
+print(f"R-squared: {r2}")
 
-print(f"Mean Squared Error (New Model): {mse_new}")
-print(f"R-squared (New Model): {r2_new}")
+# Display the model's coefficients
+print(f"Coefficient: {model.coef_[0]}")
+print(f"Intercept: {model.intercept_}")
 
-# Print coefficients
-print(f"Coefficient (New Model): {new_model.coef_[0]}")
-print(f"Intercept (New Model): {new_model.intercept_}")
+# Assuming the future_years DataFrame already contains the predicted temperatures in 'Temperaturvorhersage'
+# Rename the column to match the training data column name 'Niedersachsen'
+future_years = future_years.rename(columns={'Temperaturvorhersage': 'Niedersachsen'})
 
-# Predict future temperatures
-future_years = pd.DataFrame({'Jahr': np.arange(2024, 2050)})
-future_temperatures = regressor.predict(future_years)
-future_years['Temperaturvorhersage'] = future_temperatures
+# Use the trained model to predict the total area burned
+future_years['Predicted_Total_Area_Burned'] = model.predict(future_years[['Niedersachsen']])
 
+# Display the predictions
+future_years[['Jahr', 'Niedersachsen', 'Predicted_Total_Area_Burned']]
 print(future_years)
 
-# Plot historical data and predictions
-plt.figure(figsize=(10, 6))
-plt.scatter(X, y, color='blue', label='Historical Data')
-plt.plot(future_years['Jahr'], future_years['Temperaturvorhersage'], color='red', linestyle='--', label='Predictions')
-plt.xlabel('Jahr')
-plt.ylabel('Temperaturvorhersage')
-plt.legend()
-plt.title('Temperaturvorhersage in Niedersachsen bis 2050')
-plt.show()
 
-#Use this new model to predict total area burnt with predicted temp values until 2050.
-# Predict future forest damage
-# Convert 'Temperaturvorhersage' to match the training feature name
+# Create a scatter plot where color indicates temperature
+plt.figure(figsize=(12, 8))
 
-# Ensure 'Temperaturvorhersage' is renamed to match the training feature name
-future_years = future_years.rename(columns={'Temperaturvorhersage': 'Total_Area_Burned'})
+# Normalize temperatures for better color mapping
+norm = plt.Normalize(future_years['Niedersachsen'].min(), future_years['Niedersachsen'].max())
 
-# Use the second regression model (assuming it is named 'regressor')
-future_damage = regressor.predict(future_years[['Jahr', 'Temperaturvorhersage']])
+# Scatter plot for predicted total area burned with color representing temperature
+sc = plt.scatter(future_years['Jahr'], future_years['Predicted_Total_Area_Burned'],
+                 c=future_years['Niedersachsen'], cmap='viridis', norm=norm, s=100)
 
-# Add the predictions to the DataFrame
-future_years['Predicted_Damage'] = future_damage
+# Add color bar to indicate temperature scale
+cbar = plt.colorbar(sc)
+cbar.set_label('Temperature in Niedersachsen (°C)')
 
-# Display the updated DataFrame
-print(future_years)
+# Labels and title
+plt.xlabel('Year')
+plt.ylabel('Predicted Total Area Burned (ha)')
+plt.title('Predicted Total Area Burned in Niedersachsen with Corresponding Temperatures')
 
-# Add the predictions to the DataFrame
-future_years['Predicted_Damage'] = future_damage
-
-# Display the updated DataFrame
-print(future_years)
-
-# Plot historical data and predictions
-plt.figure(figsize=(10, 6))
-plt.scatter(X, y, color='blue', label='Historical Data')
-plt.plot(future_years['Jahr'], future_years['Temperaturvorhersage'], color='red', linestyle='--', label='Predictions')
-plt.xlabel('Jahr')
-plt.ylabel('Temperaturvorhersage')
-plt.legend()
-plt.title('Temperaturvorhersage in Niedersachsen bis 2050')
+# Show plot
 plt.show()
