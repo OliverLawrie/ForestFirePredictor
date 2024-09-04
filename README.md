@@ -14,8 +14,7 @@ After initial exploration and data pre-processing, this notebook comprises two m
 
 I feed the predicted future temperatures from the first model into the second to get predictions of the area that will be burn over coming years.
 
-<img width="642" alt="Screenshot 2024-09-04 alle 15 41 11" src="https://github.com/user-attachments/assets/417fe4a7-d681-4262-bb84-e669702550d4">
-
+<img width="636" alt="Screenshot 2024-09-04 alle 15 41 56" src="https://github.com/user-attachments/assets/648d90f2-ca70-4a1b-bb13-86ebbb0d78d9">
 
 # Positive Reflections 😇
 
