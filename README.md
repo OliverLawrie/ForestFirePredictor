@@ -1,4 +1,5 @@
 # 🔥 (German) Forest Fire Prediction Model 🌳
+<img width="973" alt="Screenshot 2024-09-04 alle 15 40 00" src="https://github.com/user-attachments/assets/fa607145-c2e6-421b-9ddc-bc6777e88b75">
 
 # What? 🤨
 
